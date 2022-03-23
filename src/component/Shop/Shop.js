@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { addToDb, getFromLocal } from '../../utilities/fakedb';
 import Body from './Body/Body';
 import './Shop.css';
 import Sidebar from './Sidebar/Sidebar';
@@ -12,11 +13,36 @@ const Shop = () => {
         fetch('products.json')
         .then(res=>res.json())
         .then(data=>setProducts(data))
-    },[])
+    },[]);
 
-    const handleAddtoClick = (product)=>{
-        const newCart = [...cart, product];
-        setCart(newCart)
+    useEffect(()=>{
+        const savedCart = []
+        const storedCart = getFromLocal();
+        for (const id in storedCart) {
+            const addedToProduct = products.find(product=>product.id===id);
+            if(addedToProduct){
+                const quantity = storedCart[id];
+                addedToProduct.quantity = quantity;
+                savedCart.push(addedToProduct);
+            }
+        }
+        setCart(savedCart);
+    },[products])
+
+    const handleAddtoClick = (selectedProduct)=>{
+        let newCart = [];
+        const exist = cart.find(product=>product.id === selectedProduct.id);
+        if(!exist){
+            selectedProduct.quantity = 1;
+            newCart = [...cart, selectedProduct]
+        }
+        else{
+            const rest = cart.filter(product=>product.id !== selectedProduct.id);
+            exist.quantity = exist.quantity + 1;
+            newCart=[...rest, exist]
+        }
+        setCart(newCart);
+        addToDb(selectedProduct.id)
 
     }
 
@@ -27,9 +53,8 @@ const Shop = () => {
                 products.map(product=><Body key={product.id} handleAddtoClick={handleAddtoClick} product={product}></Body>)
             }
             </div>
-            <div>
-                <h1>Order Summary</h1>
-                <p>Selected Item: {cart.length}</p>
+            <div className='cart-container'>
+                <Sidebar cart={cart}></Sidebar>
             </div>
         </div>
     );
